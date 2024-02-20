@@ -27,7 +27,41 @@ The devices receive the notifications and handle them according to platform-spec
 - The maximum length of the device/FCM tokens array is 500.
 - If there is an invalid FCM token in the list/array, Firebase methods will skip that token and continue to send notifications to other valid tokens.
 
+<p>Both work same</p>
+
+<pre>
+<code>
+ apns: {
+        headers: { 'apns-priority': '10' },
+        payload: {
+          aps: {
+            mutableContent: true,
+            contentAvailable: true,
+            sound: 'default'
+          }
+        },
+        fcmOptions: { imageUrl: image }
+      },
+</code>
+</pre>  
+
+<pre>
+<code>
+ apns: {
+        headers: { 'apns-priority': '10' },
+        payload: {
+          aps: {
+            'mutable-content': 1,
+            'content-available': 1,
+            sound: 'default'
+          }
+        },
+        fcm_options: { image }
+      },
+</code>
+</pre>
+
 ### References:
-- [Firebase Admin SDK - Messaging](https://firebase.google.com/docs/reference/admin/node/firebase-admin.messaging.messaging)
-- [Firebase Cloud Messaging HTTP Protocol](https://firebase.google.com/docs/cloud-messaging/http-server-ref)
-- [FCM REST API Reference](https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages)
+- [Firebase Admin SDK - Messaging (Firebase Methods)](https://firebase.google.com/docs/reference/admin/node/firebase-admin.messaging.messaging)
+- [Firebase Cloud Messaging HTTP Protocol (Message/Payload)](https://firebase.google.com/docs/cloud-messaging/http-server-ref)
+- [FCM REST API Reference (Message/Payload Structure)](https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages)
