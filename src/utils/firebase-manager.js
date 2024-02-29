@@ -117,6 +117,56 @@ class FirebaseManager {
             console.log('sendNotifications', error);
         }
     }
+    async sendHTTPv1Notifications (fcms: Array<string>, title: string, body: string, image: string, data: ISocketData) {
+  data = data || {};
+  try {
+    const batchSize = 500;
+    const chunks = [];
+
+    for (let i = 0; i < fcms.length; i += batchSize) {
+      chunks.push(fcms.slice(i, i + batchSize));
+    }
+
+    for (const fcm of chunks) {
+      const payload = {
+        tokens: fcm,
+        notification: {
+          title,
+          body,
+        },
+        data: {
+          type: data?.type,
+          data: 'data' in data ? JSON.stringify(data.data) : '',
+        },
+        android: {
+          priority: 'high' as 'high' | 'normal',
+          notification: {
+            imageUrl: image,
+          },
+        },
+        apns: {
+          headers: {
+            'apns-priority': '10',
+          },
+          payload: {
+            aps: {
+              mutableContent: true,
+              contentAvailable: true,
+              sound: 'default',
+            },
+          },
+          fcmOptions: {
+            imageUrl: image,
+          },
+        },
+      };
+      const res = await admin.messaging().sendEachForMulticast(payload);
+      console.log('res => ', JSON.stringify(res, null, 4));
+    }
+  } catch (error) {
+    console.error('sendHTTPv1Notifications', error);
+  }
+};
 }
 
 module.exports = FirebaseManager;
