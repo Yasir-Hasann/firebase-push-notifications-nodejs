@@ -1,9 +1,14 @@
+// module imports
 const express = require('express');
-const router = express.Router();
+
+// file imports
 const { addUser, updateUser, sendNotifications } = require('../controllers/user');
+
+// variable initializations
+const router = express.Router();
 
 router.post('/', addUser);
 router.put('/:id', updateUser);
-router.post('/notifications', sendNotifications)
+router.post('/notifications', sendNotifications);
 
 module.exports = router;
