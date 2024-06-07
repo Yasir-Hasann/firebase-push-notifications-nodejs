@@ -1,13 +1,15 @@
+// module imports
 const mongoose = require('mongoose');
 
-const UserSchema = mongoose.Schema(
+const UserSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    fcm: [String]
+    password: { type: String, select: false },
+    fcm: [String],
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 

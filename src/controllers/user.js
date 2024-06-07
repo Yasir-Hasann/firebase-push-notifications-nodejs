@@ -1,4 +1,7 @@
+// module imports
 const asyncHandler = require('express-async-handler');
+
+// file imports
 const UserModel = require('../models/user');
 const FirebaseManager = require('../utils/firebase-manager');
 const ErrorResponse = require('../utils/error-response');
