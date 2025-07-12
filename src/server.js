@@ -1,6 +1,6 @@
 // module imports
-const cors = require('cors');
 require('dotenv').config();
+const cors = require('cors');
 const express = require('express');
 const morgan = require('morgan');
 
@@ -16,9 +16,9 @@ const port = process.env.PORT || 5001;
 // connect mongodb
 connectDB();
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
 // mount routes
@@ -27,7 +27,7 @@ app.use('/ping', (req, res) => {
   res.status(200).json({ success: true, message: 'Bro: I am live and working' });
 });
 app.use('/*', (req, res) => {
-  res.status(400).json({ success: false, message: 'Invalid URL' });
+  res.status(404).json({ success: false, message: 'Invalid URL' });
 });
 app.use(errorHandler);
 

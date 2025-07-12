@@ -9,59 +9,28 @@ const connection = admin.initializeApp({
 });
 
 class FirebaseManager {
+  static instance = null;
   constructor() {
     this.connection = connection;
   }
 
   async sendNotificationToSingle(params) {
-    let { fcm, title, body, data } = params;
-    data = data || {};
-    try {
-      const payload = [
-        {
-          token: fcm,
-          notification: {
-            title,
-            body,
-          },
-          data: {
-            type: data.type,
-            data: 'data' in data ? JSON.stringify(data.data) : '',
-          },
-          apns: {
-            headers: {
-              'apns-priority': '10',
-            },
-            payload: {
-              aps: {
-                sound: 'default',
-              },
-            },
-          },
-        },
-      ];
-      const response = await connection.messaging().sendEach(payload);
-      console.log('res => ', JSON.stringify(response, null, 2));
-    } catch (error) {
-      console.log('sendNotificationToSingle_error', error);
-    }
-  }
-
-  async sendNotificationToMany(params) {
-    let { fcms, title, body, data } = params;
-    fcms = fcms || ['null'];
-    data = data || {};
+    let { fcm, title, body, data = {} } = params;
 
     try {
-      const payload = fcms.map((fcm) => ({
+      const message = {
         token: fcm,
         notification: {
           title,
           body,
         },
-        data: {
-          type: data.type,
-          data: 'data' in data ? JSON.stringify(data.data) : '',
+        data: data in data ? JSON.stringify(data.data) : {},
+        android: {
+          priority: 'high',
+          notification: {
+            title,
+            body,
+          },
         },
         apns: {
           headers: {
@@ -73,8 +42,67 @@ class FirebaseManager {
             },
           },
         },
-      }));
-      const response = await connection.messaging().sendEach(payload);
+        webpush: {
+          notification: {
+            title,
+            body,
+            icon: 'your_website_log_url',
+            renotify: true,
+            requireInteraction: true,
+          },
+          fcmOptions: {
+            link: 'your_website_url',
+          },
+        },
+      };
+      const response = await connection.messaging().send(message);
+      console.log('res => ', JSON.stringify(response, null, 2));
+    } catch (error) {
+      console.log('sendNotificationToSingle_error', error);
+    }
+  }
+
+  async sendNotificationToMany(params) {
+    let { fcms = [], title, body, data = {} } = params;
+    try {
+      const message = {
+        tokens: fcms,
+        notification: {
+          title,
+          body,
+        },
+        data: data in data ? JSON.stringify(data.data) : {},
+        android: {
+          priority: 'high',
+          notification: {
+            title,
+            body,
+          },
+        },
+        apns: {
+          headers: {
+            'apns-priority': '10',
+          },
+          payload: {
+            aps: {
+              sound: 'default',
+            },
+          },
+        },
+        webpush: {
+          notification: {
+            title,
+            body,
+            icon: 'your_website_logo_url',
+            renotify: true,
+            requireInteraction: true,
+          },
+          fcmOptions: {
+            link: 'your_website_url',
+          },
+        },
+      };
+      const response = await connection.messaging().sendEachForMulticast(message);
       console.log('res => ', JSON.stringify(response, null, 2));
     } catch (error) {
       console.log('sendNotificationToMany_error', error);
@@ -82,49 +110,7 @@ class FirebaseManager {
   }
 
   async sendHTTPv1Notifications(params) {
-    let { topicName, fcms, title, body, imageUrl, data } = params;
-    fcms = fcms || ['null'];
-    data = data || {};
-    try {
-      const payload = {
-        topic: topicName,
-        tokens: fcms,
-        notification: {
-          title,
-          body,
-        },
-        data: {
-          type: data.type,
-          data: 'data' in data ? JSON.stringify(data.data) : '',
-        },
-        android: {
-          notification: {
-            imageUrl: imageUrl,
-          },
-          priority: 'high',
-        },
-        apns: {
-          payload: {
-            aps: {
-              'mutable-content': 1,
-            },
-          },
-          fcm_options: {
-            image: imageUrl,
-          },
-        },
-      };
-      const response = await connection.messaging().sendEachForMulticast(payload);
-      console.log('res => ', JSON.stringify(response, null, 2));
-    } catch (error) {
-      console.log('sendNotifications', error);
-    }
-  }
-
-  async sendHTTPv1Notifications1(params) {
-    let { fcms, title, body, image, data } = params;
-    fcms = fcms || ['null'];
-    data = data || {};
+    let { fcms = [], title, body, image, data = {} } = params;
     try {
       const batchSize = 500;
       const chunks = [];
@@ -133,46 +119,117 @@ class FirebaseManager {
         chunks.push(fcms.slice(i, i + batchSize));
       }
 
-      for (const fcm of chunks) {
-        const payload = {
-          tokens: fcm,
-          notification: {
-            title,
-            body,
-          },
-          data: {
-            type: data?.type,
-            data: 'data' in data ? JSON.stringify(data.data) : '',
-          },
-          android: {
-            priority: 'high',
+      await Promise.all(
+        chunks.map(async (fcmBatch) => {
+          const message = {
+            tokens: fcmBatch,
             notification: {
-              imageUrl: image,
+              title,
+              body,
             },
-          },
-          apns: {
-            headers: {
-              'apns-priority': '10',
-            },
-            payload: {
-              aps: {
-                mutableContent: true,
-                contentAvailable: true,
-                sound: 'default',
+            data: data in data ? JSON.stringify(data.data) : {},
+            android: {
+              priority: 'high',
+              notification: {
+                title,
+                body,
+                imageUrl: image,
               },
             },
-            fcmOptions: {
-              imageUrl: image,
+            apns: {
+              headers: {
+                'apns-priority': '10',
+              },
+              payload: {
+                aps: {
+                  mutableContent: true,
+                  contentAvailable: true,
+                  sound: 'default',
+                },
+              },
+              fcmOptions: {
+                imageUrl: image,
+              },
             },
-          },
-        };
-        const res = await admin.messaging().sendEachForMulticast(payload);
-        console.log('res => ', JSON.stringify(res, null, 2));
-      }
+            webpush: {
+              notification: {
+                title,
+                body,
+                icon: 'your_website_logo_url',
+                renotify: true,
+                requireInteraction: true,
+              },
+              fcmOptions: {
+                link: 'your_website_url',
+              },
+            },
+          };
+
+          const response = await connection.messaging().sendEachForMulticast(message);
+          console.log('res => ', JSON.stringify(response, null, 2));
+        })
+      );
     } catch (error) {
       console.error('sendHTTPv1Notifications', error);
     }
   }
+
+  async sendHTTPv1Notifications1(params) {
+    let { fcms = [], title, body, image, data = {} } = params;
+    try {
+      const message = {
+        tokens: fcms,
+        notification: {
+          title,
+          body,
+        },
+        data: data in data ? JSON.stringify(data.data) : {},
+        android: {
+          priority: 'high',
+          notification: {
+            title,
+            body,
+            imageUrl: image,
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              mutableContent: true,
+              contentAvailable: true,
+              sound: 'default',
+            },
+          },
+          fcmOptions: {
+            imageUrl: image,
+          },
+        },
+        webpush: {
+          notification: {
+            title,
+            body,
+            icon: 'your_website_logo_url',
+            renotify: true,
+            requireInteraction: true,
+          },
+          fcmOptions: {
+            link: 'your_website_url',
+          },
+        },
+      };
+      const response = await connection.messaging().sendEachForMulticast(message);
+      console.log('res => ', JSON.stringify(response, null, 2));
+    } catch (error) {
+      console.error('sendHTTPv1Notifications', error);
+    }
+  }
+
+  static getInstance() {
+    if (!FirebaseManager.instance) {
+      FirebaseManager.instance = new FirebaseManager();
+    }
+    return FirebaseManager.instance;
+  }
 }
 
-module.exports = FirebaseManager;
+module.exports = FirebaseManager.getInstance();
